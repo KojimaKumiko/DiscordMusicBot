@@ -1,6 +1,6 @@
 import fs from "fs";
-import { Collection, Events, GatewayIntentBits } from "discord.js";
-import { Player } from "discord-player";
+import { CacheType, ChatInputCommandInteraction, Collection, Events, GatewayIntentBits } from "discord.js";
+import { GuildQueueEvent, Player } from "discord-player";
 import path from "path";
 import { DiscordClient } from "./models/DiscordClient";
 import { defaultExport } from "./models/types";
@@ -88,8 +88,12 @@ client.on(Events.InteractionCreate, async interaction => {
 	}
 });
 
-player.events.on("playerStart", (queue, track) => {
-	queue.metadata.channel.send(`Started playing **${track.title}**!`);
+player.events.on(GuildQueueEvent.PlayerStart, (queue, track) => {
+	let metadata: ChatInputCommandInteraction<CacheType> = queue.metadata;
+	let channel = metadata.channel;
+	if (channel?.isSendable()) {
+		channel.send(`Started playing **${track.url}**!`);
+	}
 });
 
 client.login(process.env.DISCORD_TOKEN);
