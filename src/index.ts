@@ -1,5 +1,13 @@
 import fs from "fs";
-import { CacheType, ChatInputCommandInteraction, Collection, Events, GatewayIntentBits, REST, Routes } from "discord.js";
+import {
+	CacheType,
+	ChatInputCommandInteraction,
+	Collection,
+	Events,
+	GatewayIntentBits,
+	REST,
+	Routes,
+} from "discord.js";
 import { GuildQueueEvent, Player } from "discord-player";
 import path from "path";
 import { DiscordClient } from "./models/DiscordClient";
@@ -105,7 +113,7 @@ client.on(Events.GuildCreate, async (guild) => {
 	try {
 		console.log("Trying to register guild application commands");
 		await rest.put(applicationCommands, { body: commands });
-		console.log("Successfully registered guild application commands.")
+		console.log("Successfully registered guild application commands.");
 	} catch (e) {
 		console.error(e);
 	}
