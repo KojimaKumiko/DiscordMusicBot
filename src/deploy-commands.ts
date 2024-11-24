@@ -6,6 +6,7 @@ import { Command } from "./models/Commands";
 import { defaultExport } from "./models/types";
 
 export async function getCommands(): Promise<RESTPostAPIApplicationCommandsJSONBody[]> {
+	console.log("getting commands");
 	const commands: RESTPostAPIApplicationCommandsJSONBody[] = [];
 	const commandFiles = fs.readdirSync(path.resolve(__dirname, "./commands")).filter((file) => file.endsWith(".ts"));
 
@@ -34,7 +35,6 @@ export async function getCommands(): Promise<RESTPostAPIApplicationCommandsJSONB
 }
 
 (async (): Promise<void> => {
-	console.log("getting commands");
 	const commands = await getCommands();
 
 	const rest = new REST().setToken(process.env.DISCORD_TOKEN!);

@@ -93,7 +93,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 });
 
 client.on(Events.GuildCreate, async (guild) => {
-	console.log("getting commands");
+	console.log(`GuildCreate event fired of for: ${guild.name}; with id: ${guild.id}`);
 	const commands = await getCommands();
 
 	const rest = new REST().setToken(process.env.DISCORD_TOKEN!);
