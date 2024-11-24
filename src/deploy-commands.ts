@@ -5,7 +5,7 @@ import path from "path";
 import { Command } from "./models/Commands";
 import { defaultExport } from "./models/types";
 
-async function getCommands(): Promise<RESTPostAPIApplicationCommandsJSONBody[]> {
+export async function getCommands(): Promise<RESTPostAPIApplicationCommandsJSONBody[]> {
 	const commands: RESTPostAPIApplicationCommandsJSONBody[] = [];
 	const commandFiles = fs.readdirSync(path.resolve(__dirname, "./commands")).filter((file) => file.endsWith(".ts"));
 
@@ -45,9 +45,13 @@ async function getCommands(): Promise<RESTPostAPIApplicationCommandsJSONBody[]> 
 	const applicationCommands = Routes.applicationGuildCommands(clientId, guildId);
 
 	try {
+		console.log("Deleting all prior guild application commands.");
+		await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: [] });
+		console.log("Successfully deleted all guild commands.");
+
 		console.log("Trying to register guild application commands");
 		await rest.put(applicationCommands, { body: commands });
-		console.log("Successfully registered guild application commands.")
+		console.log("Successfully registered guild application commands.");
 	} catch (e) {
 		console.error(e);
 	}

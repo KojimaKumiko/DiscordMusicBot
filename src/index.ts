@@ -1,16 +1,19 @@
 import fs from "fs";
-import { CacheType, ChatInputCommandInteraction, Collection, Events, GatewayIntentBits } from "discord.js";
+import { CacheType, ChatInputCommandInteraction, Collection, Events, GatewayIntentBits, REST, Routes } from "discord.js";
 import { GuildQueueEvent, Player } from "discord-player";
 import path from "path";
 import { DiscordClient } from "./models/DiscordClient";
 import { defaultExport } from "./models/types";
 import { Command } from "./models/Commands";
 import { YoutubeiExtractor } from "discord-player-youtubei";
+import { getCommands } from "./deploy-commands";
 
-const client = new DiscordClient({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildMessages] });
+const client = new DiscordClient({
+	intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildMessages],
+});
 
 const player = new Player(client, {
-	skipFFmpeg: false
+	skipFFmpeg: false,
 });
 
 player.on("debug", console.log);
@@ -20,14 +23,14 @@ player.extractors.register(YoutubeiExtractor, {
 	// authentication: process.env.YOUTUBE_AUTH_STRING,
 	streamOptions: {
 		// useClient: "WEB",
-		highWaterMark: 1 * 1024 * 1024
+		highWaterMark: 1 * 1024 * 1024,
 	},
 	// overrideBridgeMode: "yt"
 });
 
-player.extractors.loadDefault((ext) => !['YouTubeExtractor'].includes(ext));
+player.extractors.loadDefault((ext) => !["YouTubeExtractor"].includes(ext));
 
-client.once(Events.ClientReady, readyClient => {
+client.once(Events.ClientReady, (readyClient) => {
 	console.log(`Ready! Logged in as ${readyClient.user.tag}`);
 });
 
@@ -58,7 +61,7 @@ commandFiles.forEach(async (file) => {
 // 	}
 // });
 
-client.on(Events.InteractionCreate, async interaction => {
+client.on(Events.InteractionCreate, async (interaction) => {
 	if (!interaction.isChatInputCommand() || interaction.user.bot) {
 		return;
 	}
@@ -79,12 +82,32 @@ client.on(Events.InteractionCreate, async interaction => {
 		// if (e.errors) {
 		// 	console.error(e.errors);
 		// }
-		const errorMessage = "Es gab einen Fehler beim ausführen des Befehls. Bitte versuch den Befehl später erneut auszuführen. Falls das Problem weiterhin bestehen bleiben sollte, melde dich bei Koji";
+		const errorMessage =
+			"Es gab einen Fehler beim ausführen des Befehls. Bitte versuch den Befehl später erneut auszuführen. Falls das Problem weiterhin bestehen bleiben sollte, melde dich bei Koji";
 		if (interaction.deferred) {
 			await interaction.editReply({ content: errorMessage });
 		} else {
 			await interaction.reply({ content: errorMessage, ephemeral: true });
 		}
+	}
+});
+
+client.on(Events.GuildCreate, async (guild) => {
+	console.log("getting commands");
+	const commands = await getCommands();
+
+	const rest = new REST().setToken(process.env.DISCORD_TOKEN!);
+
+	const clientId = process.env.CLIENT_ID!;
+
+	const applicationCommands = Routes.applicationGuildCommands(clientId, guild.id);
+
+	try {
+		console.log("Trying to register guild application commands");
+		await rest.put(applicationCommands, { body: commands });
+		console.log("Successfully registered guild application commands.")
+	} catch (e) {
+		console.error(e);
 	}
 });
 
