@@ -6,7 +6,7 @@ import { DiscordClient } from "./models/DiscordClient";
 import { defaultExport } from "./models/types";
 import { Command } from "./models/Commands";
 import { YoutubeiExtractor } from "discord-player-youtubei";
-import { getCommands } from "./deploy-commands";
+import { getCommands } from "./misc";
 
 const client = new DiscordClient({
 	intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildMessages],
