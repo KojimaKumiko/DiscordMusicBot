@@ -1,5 +1,8 @@
 import fs from "fs";
 import {
+	ActionRowBuilder,
+	ButtonBuilder,
+	ButtonStyle,
 	CacheType,
 	ChatInputCommandInteraction,
 	Collection,
@@ -15,6 +18,7 @@ import { defaultExport } from "./models/types";
 import { Command } from "./models/Commands";
 import { YoutubeiExtractor } from "discord-player-youtubei";
 import { getCommands } from "./misc";
+import { Buttons } from "./models/Buttons";
 
 const client = new DiscordClient({
 	intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildMessages],
@@ -43,6 +47,7 @@ client.once(Events.ClientReady, (readyClient) => {
 });
 
 client.commands = new Collection();
+client.buttons = new Collection();
 
 const commandFiles = fs.readdirSync(path.resolve(__dirname, "./commands")).filter((file) => file.endsWith(".ts"));
 
@@ -59,6 +64,17 @@ commandFiles.forEach(async (file) => {
 	client.commands!.set(command.default.data.name, command.default);
 });
 
+const buttonFiles = fs.readdirSync(path.resolve(__dirname, "./buttons")).filter((file) => file.endsWith(".ts"));
+
+buttonFiles.forEach(async (file) => {
+	const buttonData: defaultExport<Buttons> = await import(`./buttons/${file}`);
+	if (buttonData == null || buttonData.default == null) {
+		return;
+	}
+
+	client.buttons!.set(buttonData.default.id, buttonData.default);
+});
+
 // const eventFiles = fs.readdirSync("./events").filter((file) => file.endsWith(".ts"));
 // eventFiles.forEach(async (file) => {
 // 	const event: defaultExport<DiscordEvent> = await import(`./events/${file}`);
@@ -70,32 +86,56 @@ commandFiles.forEach(async (file) => {
 // });
 
 client.on(Events.InteractionCreate, async (interaction) => {
-	if (!interaction.isChatInputCommand() || interaction.user.bot) {
+	if (interaction.user.bot) {
 		return;
 	}
 
 	const client = interaction.client as DiscordClient;
-	const command = client.commands!.get(interaction.commandName);
 
-	if (!command) {
-		return;
-	}
+	if (interaction.isChatInputCommand()) {
+		const command = client.commands!.get(interaction.commandName);
 
-	console.log(`Executing Command: ${interaction.commandName}`);
+		if (!command) {
+			return;
+		}
 
-	try {
-		await command.execute(interaction);
-	} catch (e) {
-		console.error(`Command: ${interaction.commandName}\nError: ${e}`);
-		// if (e.errors) {
-		// 	console.error(e.errors);
-		// }
-		const errorMessage =
-			"Es gab einen Fehler beim ausführen des Befehls. Bitte versuch den Befehl später erneut auszuführen. Falls das Problem weiterhin bestehen bleiben sollte, melde dich bei Koji";
-		if (interaction.deferred) {
-			await interaction.editReply({ content: errorMessage });
-		} else {
-			await interaction.reply({ content: errorMessage, ephemeral: true });
+		console.log(`Executing Command: ${interaction.commandName}`);
+
+		try {
+			await command.execute(interaction);
+		} catch (e) {
+			console.error(`Command: ${interaction.commandName}\nError: ${e}`);
+			// if (e.errors) {
+			// 	console.error(e.errors);
+			// }
+			const errorMessage =
+				"Es gab einen Fehler beim ausführen des Befehls. Bitte versuch den Befehl später erneut auszuführen. Falls das Problem weiterhin bestehen bleiben sollte, melde dich bei Koji";
+			if (interaction.deferred) {
+				await interaction.editReply({ content: errorMessage });
+			} else {
+				await interaction.reply({ content: errorMessage, ephemeral: true });
+			}
+		}
+	} else if (interaction.isButton()) {
+		const buttonData = client.buttons!.get(interaction.customId);
+
+		if (!buttonData) {
+			return;
+		}
+
+		console.log(`Executing Button: ${interaction.customId}`);
+
+		try {
+			await buttonData.execute(interaction);
+		} catch (e) {
+			console.error(`Command: ${interaction.customId}\nError: ${e}`);
+			const errorMessage =
+				"Es gab einen Fehler beim ausführen des Befehls. Bitte versuch den Befehl später erneut auszuführen. Falls das Problem weiterhin bestehen bleiben sollte, melde dich bei Koji";
+			if (interaction.deferred) {
+				await interaction.editReply({ content: errorMessage });
+			} else {
+				await interaction.reply({ content: errorMessage, ephemeral: true });
+			}
 		}
 	}
 });
@@ -123,7 +163,25 @@ player.events.on(GuildQueueEvent.PlayerStart, (queue, track) => {
 	let metadata: ChatInputCommandInteraction<CacheType> = queue.metadata;
 	let channel = metadata.channel;
 	if (channel?.isSendable()) {
-		channel.send(`Started playing **${track.url}**!`);
+		const pauseButton = new ButtonBuilder()
+			.setCustomId("pauseButton")
+			.setLabel("Play/Pause")
+			.setEmoji("⏯")
+			.setStyle(ButtonStyle.Primary);
+		const stopButton = new ButtonBuilder()
+			.setCustomId("stopButton")
+			.setLabel("Stop")
+			.setEmoji("⏹")
+			.setStyle(ButtonStyle.Primary);
+		const skipButton = new ButtonBuilder()
+			.setCustomId("skipButton")
+			.setLabel("Skip")
+			.setEmoji("⏩")
+			.setStyle(ButtonStyle.Primary);
+
+		const row = new ActionRowBuilder<ButtonBuilder>().addComponents(pauseButton, stopButton, skipButton);
+
+		channel.send({ content: `▶ Started playing **${track.url}**!`, components: [row] });
 	}
 });
 
