@@ -34,10 +34,12 @@ player.events.on("debug", (queue, message) => console.log(`[DEBUG] ${queue.guild
 player.extractors.register(YoutubeiExtractor, {
 	// authentication: process.env.YOUTUBE_AUTH_STRING,
 	streamOptions: {
-		// useClient: "WEB",
+		useClient: "WEB",
 		highWaterMark: 1 * 1024 * 1024,
 	},
 	// overrideBridgeMode: "yt"
+	// useServerAbrStream: true,
+	generateWithPoToken: true,
 });
 
 player.extractors.loadDefault((ext) => !["YouTubeExtractor"].includes(ext));
